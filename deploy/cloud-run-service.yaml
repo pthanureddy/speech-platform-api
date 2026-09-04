@@ -1,0 +1,67 @@
+# Reference manifest only; it has not been applied to Google Cloud.
+# PostgreSQL makes API state safe across instances. This remains an undeployed
+# reference; its database, networking, IAM, and capacity values need review.
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  name: speech-platform-api
+  annotations:
+    run.googleapis.com/ingress: internal-and-cloud-load-balancing
+spec:
+  template:
+    metadata:
+      annotations:
+        autoscaling.knative.dev/minScale: "0"
+        autoscaling.knative.dev/maxScale: "10"
+        run.googleapis.com/execution-environment: gen2
+    spec:
+      containerConcurrency: 40
+      timeoutSeconds: 30
+      serviceAccountName: speech-platform-api@PROJECT_ID.iam.gserviceaccount.com
+      containers:
+        - image: REGION-docker.pkg.dev/PROJECT_ID/services/speech-platform-api:IMAGE_TAG
+          ports:
+            - name: http1
+              containerPort: 3000
+          env:
+            - name: NODE_ENV
+              value: production
+            - name: HOST
+              value: 0.0.0.0
+            - name: PORT
+              value: "3000"
+            - name: LOG_LEVEL
+              value: info
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: speech-platform-database-url
+                  key: latest
+            - name: INTERNAL_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: speech-platform-internal-token
+                  key: latest
+            - name: WEBHOOK_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: speech-platform-webhook-secret
+                  key: latest
+            - name: TENANTS_JSON
+              valueFrom:
+                secretKeyRef:
+                  name: speech-platform-tenants
+                  key: latest
+          resources:
+            limits:
+              cpu: "1"
+              memory: 512Mi
+          startupProbe:
+            httpGet:
+              path: /health/live
+            periodSeconds: 2
+            failureThreshold: 15
+          livenessProbe:
+            httpGet:
+              path: /health/live
+            periodSeconds: 10

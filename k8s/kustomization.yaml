@@ -1,0 +1,9 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - configmap.yaml
+  - deployment.yaml
+  - service.yaml
+# hpa.yaml and pdb.yaml intentionally remain outside this base and have not
+# been applied. Review capacity/SLO assumptions before adding them. Create the
+# Secret separately; production startup requires its DATABASE_URL.

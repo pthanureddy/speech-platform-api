@@ -1,0 +1,12 @@
+# Optional, undeployed reference for the PostgreSQL-backed Deployment.
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: speech-platform-api
+  annotations:
+    speech-platform.example/reference-only: "not-applied"
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: speech-platform-api

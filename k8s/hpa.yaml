@@ -1,0 +1,32 @@
+# Optional, undeployed reference. The target Deployment requires DATABASE_URL
+# and therefore boots with the shared PostgreSQL adapter before it can scale.
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: speech-platform-api
+  annotations:
+    speech-platform.example/requires-durable-repository: "true"
+    speech-platform.example/reference-only: "not-applied"
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: speech-platform-api
+  minReplicas: 2
+  maxReplicas: 10
+  behavior:
+    scaleDown:
+      stabilizationWindowSeconds: 300
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 75

@@ -1,0 +1,52 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: speech_platform
+      POSTGRES_USER: speech_platform
+      POSTGRES_PASSWORD: local_compose_password_change_me
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U speech_platform -d speech_platform"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  api:
+    build:
+      context: .
+      target: runtime
+    ports:
+      - "127.0.0.1:3000:3000"
+    environment:
+      NODE_ENV: production
+      LOG_LEVEL: info
+      DATABASE_URL: postgresql://speech_platform:local_compose_password_change_me@postgres:5432/speech_platform
+      TENANTS_JSON: >-
+        [{"id":"tenant_demo","name":"Demo tenant","planId":"starter","apiKey":"compose_demo_api_key_change_me"}]
+      INTERNAL_TOKEN: local_compose_internal_token_change_me_now
+      WEBHOOK_SECRET: local_compose_webhook_secret_change_me_now
+    depends_on:
+      postgres:
+        condition: service_healthy
+    init: true
+    read_only: true
+    tmpfs:
+      - /tmp
+    security_opt:
+      - no-new-privileges:true
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "fetch('http://127.0.0.1:3000/health/ready').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+volumes:
+  postgres-data:
